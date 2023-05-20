@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/go-openapi/runtime/middleware"
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
@@ -41,8 +42,23 @@ func main() {
 	router.HandleFunc("/config/{id}/", server.delConfigHandler).Methods("DELETE")
 
 	router.HandleFunc("/group/", server.createGroupHandler).Methods("POST")
-	router.HandleFunc("/group/{groupId}/config{id}/", server.AddConfigToGroup).Methods("PUT")
+	router.HandleFunc("/group/{groupId}/config{id}/", server.addConfigToGroup).Methods("PUT")
+	router.HandleFunc("/swagger.yaml", server.swaggerHandler).Methods("GET")
+
+	// SwaggerUI
+	optionsDevelopers := middleware.SwaggerUIOpts{SpecURL: "swagger.yaml"}
+	developerDocumentationHandler := middleware.SwaggerUI(optionsDevelopers, nil)
+	router.Handle("/docs", developerDocumentationHandler)
+
+	// ReDoc
+	// optionsShared := middleware.RedocOpts{SpecURL: "/swagger.yaml"}
+	// sharedDocumentationHandler := middleware.Redoc(optionsShared, nil)
+	// router.Handle("/docs", sharedDocumentationHandler)
+
 	// start server
+
+	// start server
+
 	srv := &http.Server{Addr: "0.0.0.0:8000", Handler: router}
 	go func() {
 		log.Println("server starting")
