@@ -1,38 +1,51 @@
 package main
 
-// swagger:parameters deletePost
+// swagger:parameters deleteConfig
 type DeleteConfigRequest struct {
 	// Post ID
 	// in: path
 	Id string `json:"id"`
 }
 
-// swagger:parameters getPostById
+// swagger:parameters getConfigById
 type GetConfigRequest struct {
 	// Post ID
 	// in: path
 	Id string `json:"id"`
 }
 
-// swagger:parameters post createPost
+// swagger:parameters post createConfig
 type RequestConfigBody struct {
 	// - name: body
 	//  in: body
 	//  description: name and status
 	//  schema:
 	//  type: object
-	//     "$ref": "#/definitions/RequestPost"
+	//     "$ref": "#/definitions/Config"
 	//  required: true
-	Body configServer `json:"body"`
+	Body Config `json:"body"`
+}
+
+// swagger:parameters post createGroup
+type RequestGroupBody struct {
+	// - name: body
+	//  in: body
+	//  description: name and status
+	//  schema:
+	//  type: object
+	//     "$ref": "#/definitions/Group"
+	//  required: true
+	Body Group `json:"body"`
 }
 
 // swagger:parameters addConfigToGroup
 type AddConfigToGroupRequest struct {
 	// Group ID
+	// in: path
+	GroupId string `json:"g_id"`
 	// Config ID
 	// in: path
-	GroupId  string `json:"group-id"`
-	ConfigId string `json:"config-id"`
+	ConfigId string `json:"c_id"`
 }
 
 // swagger:parameters getGroupById
@@ -52,8 +65,10 @@ type DeleteGroupRequest struct {
 // swagger:parameters deleteConfigFromGroup
 type DeleteConfigFromGroupRequest struct {
 	// Group ID
+	// in: path
+	GroupId string `json:"g_id"`
+
 	// Config ID
 	// in: path
-	GroupId  string `json:"group-id"`
-	ConfigId string `json:"config-id"`
+	ConfigId string `json:"c_id"`
 }

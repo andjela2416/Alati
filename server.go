@@ -41,7 +41,6 @@ func (cs *configServer) createConfigHandler(w http.ResponseWriter, req *http.Req
 	rt.Id = id
 	cs.data[id] = rt
 	renderJSON(w, rt)
-	renderJSON(w, rt)
 }
 
 // swagger:route GET /configs/ config getConfigs
@@ -82,6 +81,7 @@ func (cs *configServer) getConfigHandler(w http.ResponseWriter, req *http.Reques
 //
 //	404: ErrorResponse
 //	204: NoContentResponse
+//	201: ResponseConfig
 func (cs *configServer) delConfigHandler(w http.ResponseWriter, req *http.Request) {
 	id := mux.Vars(req)["id"]
 	if v, ok := cs.data[id]; ok {
@@ -127,7 +127,7 @@ func (cs *configServer) createGroupHandler(w http.ResponseWriter, req *http.Requ
 	renderJSON(w, group)
 }
 
-// swagger:route PUT /group/{id}/config/{id}/ group addConfigToGroup
+// swagger:route PUT /group/{g_id}/config/{c_id}/ group addConfigToGroup
 // Add config to group
 //
 // responses:
@@ -136,8 +136,8 @@ func (cs *configServer) createGroupHandler(w http.ResponseWriter, req *http.Requ
 //	400: ErrorResponse
 //	201: ResponseGroup
 func (cs *configServer) addConfigToGroup(w http.ResponseWriter, req *http.Request) {
-	groupId := mux.Vars(req)["groupId"]
-	id := mux.Vars(req)["id"]
+	groupId := mux.Vars(req)["g_id"]
+	id := mux.Vars(req)["c_id"]
 	task, ok := cs.data[id]
 	group, ook := cs.groupData[groupId]
 	if !ok || !ook {
@@ -191,6 +191,7 @@ func (cs *configServer) getGroupHandler(w http.ResponseWriter, req *http.Request
 //
 //	404: ErrorResponse
 //	204: NoContentResponse
+//	201: ResponseGroup
 func (cs *configServer) delGroupHandler(w http.ResponseWriter, req *http.Request) {
 	id := mux.Vars(req)["id"]
 	_, ok := cs.groupData[id]
@@ -202,7 +203,7 @@ func (cs *configServer) delGroupHandler(w http.ResponseWriter, req *http.Request
 	delete(cs.groupData, id)
 }
 
-// swagger:route DELETE /group/{id}/config/{id}/ group deleteConfigFromGroup
+// swagger:route DELETE /group/{g_id}/config/{c_id}/ group deleteConfigFromGroup
 // Delete config from group
 //
 // responses:
@@ -210,8 +211,8 @@ func (cs *configServer) delGroupHandler(w http.ResponseWriter, req *http.Request
 //	404: ErrorResponse
 //	204: NoContentResponse
 func (cs *configServer) delConfigFromGroupHandler(w http.ResponseWriter, req *http.Request) {
-	groupId := mux.Vars(req)["groupId"]
-	id := mux.Vars(req)["id"]
+	groupId := mux.Vars(req)["g_id"]
+	id := mux.Vars(req)["c_id"]
 	group, ok := cs.groupData[groupId]
 	if !ok {
 		err := errors.New("group not found")
