@@ -9,6 +9,7 @@ type Config struct {
 	// Map of entries
 	// in: map[string]string
 	Entries map[string]string `json:"entries"`
+	Version string            `json:"version"`
 }
 
 // swagger:model Group
