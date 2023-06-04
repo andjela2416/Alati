@@ -13,7 +13,7 @@ import (
 type configServer struct {
 	store *s.Store
 	//data      map[string]*s.Config
-	groupData map[string]*s.Group // izigrava bazu podataka*/
+	groupData map[string]*s.Group
 }
 
 // swagger:route POST /config/ config createConfig
@@ -128,13 +128,11 @@ func (cs *configServer) createGroupHandler(w http.ResponseWriter, req *http.Requ
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-
 	if mediatype != "application/json" {
 		err := errors.New("Expect application/json Content-Type")
 		http.Error(w, err.Error(), http.StatusUnsupportedMediaType)
 		return
 	}
-
 	rt, err := decodeGroup(req.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -212,11 +210,12 @@ func (cs *configServer) addConfigToGroup(w http.ResponseWriter, req *http.Reques
 //
 //	200: []ResponseGroup
 func (cs *configServer) getAllGroupsHandler(w http.ResponseWriter, req *http.Request) {
-	allGroups := []*s.Group{}
-	for _, v := range cs.groupData {
-		allGroups = append(allGroups, v)
+	allTasks, err := cs.store.GetAllGroups()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
-	renderJSON(w, allGroups)
+	renderJSON(w, allTasks)
 }
 
 // swagger:route GET /group/{id}/ group getGroupById
@@ -230,7 +229,7 @@ func (cs *configServer) getGroupHandler(w http.ResponseWriter, req *http.Request
 
 	id := mux.Vars(req)["id"]
 	version := mux.Vars(req)["version"]
-	task, err := cs.store.Get(id, version)
+	task, err := cs.store.GetGroup(id, version)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -299,6 +298,19 @@ func (ts *configServer) swaggerHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *configServer) getPostByLabel(w http.ResponseWriter, req *http.Request) {
+	id := mux.Vars(req)["id"]
+	version := mux.Vars(req)["version"]
+	labels := mux.Vars(req)["labels"]
+
+	task, err := s.store.GetConfigsByLabels(id, version, labels)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	renderJSON(w, task)
+}
+
+func (s *configServer) getGroupsByLabel(w http.ResponseWriter, req *http.Request) {
 	id := mux.Vars(req)["id"]
 	version := mux.Vars(req)["version"]
 	labels := mux.Vars(req)["labels"]
