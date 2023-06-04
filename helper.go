@@ -2,26 +2,27 @@ package main
 
 import (
 	"encoding/json"
+	"example.com/mod/store"
 	"github.com/google/uuid"
 	"io"
 	"net/http"
 )
 
-func decodeBody(r io.Reader) (*Config, error) {
+func decodeBody(r io.Reader) (*store.Config, error) {
 	dec := json.NewDecoder(r)
 	dec.DisallowUnknownFields()
-	var c Config
+	var c store.Config
 	if err := dec.Decode(&c); err != nil {
 		return nil, err
 	}
 	return &c, nil
 }
 
-func decodeGroup(r io.Reader) (*Group, error) {
+func decodeGroup(r io.Reader) (*store.Group, error) {
 	dec := json.NewDecoder(r)
 	dec.DisallowUnknownFields()
 
-	var g Group
+	var g store.Group
 	if err := dec.Decode(&g); err != nil {
 		return nil, err
 	}

@@ -1,5 +1,7 @@
 package main
 
+import "example.com/mod/store"
+
 // swagger:response ResponseConfig
 type ResponseConfig struct {
 	// Id of the config
@@ -17,7 +19,7 @@ type ResponseGroup struct {
 	Id string `json:"id"`
 
 	// List of configs of the group
-	Configs []Config `json:"configs"`
+	Configs []store.Config `json:"configs"`
 }
 
 // swagger:response ErrorResponse

@@ -1,8 +1,10 @@
 package main
 
+import "example.com/mod/store"
+
 // swagger:parameters deleteConfig
 type DeleteConfigRequest struct {
-	// Post ID
+	// Config ID
 	// in: path
 	Id string `json:"id"`
 }
@@ -14,7 +16,7 @@ type GetConfigRequest struct {
 	Id string `json:"id"`
 }
 
-// swagger:parameters post createConfig
+// swagger:parameters config createConfig
 type RequestConfigBody struct {
 	// - name: body
 	//  in: body
@@ -23,10 +25,10 @@ type RequestConfigBody struct {
 	//  type: object
 	//     "$ref": "#/definitions/Config"
 	//  required: true
-	Body Config `json:"body"`
+	Body store.Config `json:"body"`
 }
 
-// swagger:parameters post createGroup
+// swagger:parameters config createGroup
 type RequestGroupBody struct {
 	// - name: body
 	//  in: body
@@ -35,7 +37,7 @@ type RequestGroupBody struct {
 	//  type: object
 	//     "$ref": "#/definitions/Group"
 	//  required: true
-	Body Group `json:"body"`
+	Body store.Group `json:"body"`
 }
 
 // swagger:parameters addConfigToGroup
