@@ -47,24 +47,24 @@ func (ps *Store) Get(id string, version string) ([]*Config, error) {
 	}
 	return configs, nil
 }
-func (ps *Store) GetGroup(id string) (*Group, error) {
+func (ps *Store) GetGroup(id string, version string) ([]*Group, error) {
 	kv := ps.cli.KV()
-	data, _, err := kv.List(constructKey2(id), nil)
+
+	data, _, err := kv.List(constructKey(id, version, ""), nil)
 	if err != nil {
 		return nil, err
 	}
 
-	post := &Group{}
+	configs := []*Group{}
 	for _, pair := range data {
-		post := Group{}
-		err = json.Unmarshal(pair.Value, post)
+		config := &Group{}
+		err = json.Unmarshal(pair.Value, config)
 		if err != nil {
 			return nil, err
 		}
-
+		configs = append(configs, config)
 	}
-
-	return post, nil
+	return configs, nil
 }
 
 func (ps *Store) GetAll() ([]*Config, error) {
@@ -86,24 +86,24 @@ func (ps *Store) GetAll() ([]*Config, error) {
 
 	return configs, nil
 }
-func (ps *Store) GetAllGroups(ctx context.Context) ([]*Group, error) {
+func (ps *Store) GetAllGroups() ([]*Group, error) {
 	kv := ps.cli.KV()
 	data, _, err := kv.List(allGroups, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	posts := []*Group{}
+	groups := []*Group{}
 	for _, pair := range data {
-		post := &Group{}
-		err = json.Unmarshal(pair.Value, post)
+		group := &Group{}
+		err = json.Unmarshal(pair.Value, group)
 		if err != nil {
 			return nil, err
 		}
-		posts = append(posts, post)
+		groups = append(groups, group)
 	}
 
-	return posts, nil
+	return groups, nil
 }
 
 func (ps *Store) Delete(id string, version string) (map[string]string, error) {
