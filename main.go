@@ -50,14 +50,14 @@ func main() {
 	router.HandleFunc("/config/{id}/{version}/{labels}", server.getPostByLabel).Methods("GET")
 
 	router.HandleFunc("/group/", server.createGroupHandler).Methods("POST")
-	router.HandleFunc("/groups/", server.getAllGroupsHandler).Methods("GET")
+	router.HandleFunc("/groups/", server.getAllGroupsHandler).Methods("GET") //.
 	/*router.HandleFunc("/group/{id}/", server.getGroupHandler).Methods("GET")
 	router.HandleFunc("/group/{id}/", server.delGroupHandler).Methods("DELETE")*/
 	router.HandleFunc("/group/{id}/{version}/", server.getGroupHandler).Methods("GET")
 	router.HandleFunc("/group/{id}/{version}/", server.delGroupHandler).Methods("DELETE")
 	router.HandleFunc("/group/{id}/{version}/{labels}", server.getGroupsByLabel).Methods("GET")
-	router.HandleFunc("/group/{groupId}/config/{id}/", server.delConfigFromGroupHandler).Methods("DELETE")
-	router.HandleFunc("/group/{g_id}/config/{c_id}/", server.addConfigToGroup).Methods("PUT")
+	router.HandleFunc("/group/{groupId}/{g_version}/config/{id}/{c_version}/", server.delConfigFromGroupHandler).Methods("DELETE")
+	router.HandleFunc("/group/{g_id}/{g_version}/config/{c_id}/{c_version}/", server.addConfigToGroup).Methods("PUT")
 	router.HandleFunc("/swagger.yaml", server.swaggerHandler).Methods("GET")
 
 	// SwaggerUI
