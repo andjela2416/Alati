@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	ps "example.com/mod/store"
 	"fmt"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/gorilla/mux"
@@ -32,17 +33,31 @@ func main() {
 	router := mux.NewRouter()
 	router.StrictSlash(true)
 
+	st, err := ps.New()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	server := configServer{
-		data:      map[string]*Config{},
-		groupData: map[string]*Group{},
+		store: st,
 	}
 	router.HandleFunc("/config/", server.createConfigHandler).Methods("POST")
 	router.HandleFunc("/configs/", server.getAllHandler).Methods("GET")
-	router.HandleFunc("/config/{id}/", server.getConfigHandler).Methods("GET")
-	router.HandleFunc("/config/{id}/", server.delConfigHandler).Methods("DELETE")
+	/*router.HandleFunc("/config/{id}/", server.getConfigHandler).Methods("GET")
+	router.HandleFunc("/config/{id}/", server.delConfigHandler).Methods("DELETE")*/
+	router.HandleFunc("/config/{id}/{version}/", server.getConfigHandler).Methods("GET")
+	router.HandleFunc("/config/{id}/{version}/", server.delConfigHandler).Methods("DELETE")
+	router.HandleFunc("/config/{id}/{version}/{labels}", server.getPostByLabel).Methods("GET")
 
 	router.HandleFunc("/group/", server.createGroupHandler).Methods("POST")
-	router.HandleFunc("/group/{g_id}/config{c_id}/", server.addConfigToGroup).Methods("PUT")
+	router.HandleFunc("/groups/", server.getAllGroupsHandler).Methods("GET") //.
+	/*router.HandleFunc("/group/{id}/", server.getGroupHandler).Methods("GET")
+	router.HandleFunc("/group/{id}/", server.delGroupHandler).Methods("DELETE")*/
+	router.HandleFunc("/group/{id}/{version}/", server.getGroupHandler).Methods("GET")
+	router.HandleFunc("/group/{id}/{version}/", server.delGroupHandler).Methods("DELETE")
+	router.HandleFunc("/group/{id}/{version}/{labels}", server.getGroupsByLabel).Methods("GET")
+	router.HandleFunc("/group/{groupId}/{g_version}/config/{id}/{c_version}/", server.delConfigFromGroupHandler).Methods("DELETE")
+	router.HandleFunc("/group/{g_id}/{g_version}/config/{c_id}/{c_version}/", server.addConfigToGroup).Methods("PUT")
 	router.HandleFunc("/swagger.yaml", server.swaggerHandler).Methods("GET")
 
 	// SwaggerUI
