@@ -39,11 +39,15 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.15.1 // indirect
 	github.com/prometheus/client_model v0.4.0 // indirect
 	github.com/prometheus/common v0.44.0 // indirect
 	github.com/prometheus/procfs v0.10.1 // indirect
+	github.com/uber/jaeger-client-go v2.30.0+incompatible // indirect
+	github.com/uber/jaeger-lib v2.4.1+incompatible // indirect
 	go.mongodb.org/mongo-driver v1.11.3 // indirect
+	go.uber.org/atomic v1.11.0 // indirect
 	golang.org/x/sys v0.8.0 // indirect
 	google.golang.org/protobuf v1.30.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
