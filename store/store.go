@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/hashicorp/consul/api"
 	"os"
 )
@@ -51,7 +52,7 @@ func (ps *Store) Get(id string, version string) ([]*Config, error) {
 func (ps *Store) GetGroup(id string, version string) ([]*Group, error) {
 	kv := ps.cli.KV()
 
-	data, _, err := kv.List(constructKey(id, version, ""), nil)
+	data, _, err := kv.List(constructGroupKey(id, version, ""), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +71,7 @@ func (ps *Store) GetGroup(id string, version string) ([]*Group, error) {
 func (ps *Store) GetOneGroup(id string, version string) (*Group, error) {
 	kv := ps.cli.KV()
 
-	data, _, err := kv.List(constructKey(id, version, ""), nil)
+	data, _, err := kv.List(constructGroupKey(id, version, ""), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -175,7 +176,7 @@ func (ps *Store) Delete(id string, version string) (map[string]string, error) {
 }
 func (ps *Store) DeleteGroup(ctx context.Context, id string, version string) (map[string]string, error) {
 	kv := ps.cli.KV()
-	_, err := kv.DeleteTree(constructKey2(id), nil)
+	_, err := kv.DeleteTree(constructGroupKey(id, version, ""), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -206,7 +207,7 @@ func (ps *Store) Config(config *Config) (*Config, error) {
 func (ps *Store) PostGroup(post *Group) (*Group, error) {
 	kv := ps.cli.KV()
 
-	sid, rid := generateKey(post.Version, post.Labels)
+	sid, rid := generateGroupKey(post.Version, post.Labels)
 	post.Id = rid
 
 	data, err := json.Marshal(post)
@@ -226,7 +227,7 @@ func (ps *Store) PostGroup(post *Group) (*Group, error) {
 func (ps *Store) GetGroupsByLabels(id string, version string, labels string) ([]*Group, error) {
 	kv := ps.cli.KV()
 
-	data, _, err := kv.List(constructKey(id, version, labels), nil)
+	data, _, err := kv.List(constructGroupKey(id, version, labels), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -272,4 +273,38 @@ func (ps *Store) GetConfigsByLabels(id string, version string, labels string) ([
 	}
 
 	return configs, nil
+}
+func (ps *Store) SaveRequestId() string {
+	kv := ps.cli.KV()
+
+	reqId := generateRequestId()
+
+	i := &api.KVPair{Key: reqId, Value: nil}
+
+	_, err := kv.Put(i, nil)
+	if err != nil {
+		return "error"
+	}
+	return reqId
+
+}
+
+func (ps *Store) FindRequestId(requestId string) bool {
+	kv := ps.cli.KV()
+
+	key, _, err := kv.Get(requestId, nil)
+
+	fmt.Println(key)
+
+	if err != nil || key == nil {
+		return false
+	}
+
+	return true
+
+}
+func generateRequestId() string {
+	rid := uuid.New().String()
+
+	return rid
 }
