@@ -113,6 +113,12 @@ var (
 			Help: "Total number of add config to group hits.",
 		},
 	)
+	swaggerHits = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "swagger_http_hit_total",
+			Help: "Total number of swagger hits.",
+		},
+	)
 
 	// Add all metrics that will be resisted
 	metricsList = []prometheus.Collector{
@@ -131,6 +137,7 @@ var (
 		getGroupByLabelsHits,
 		delGroupByLabelsHits,
 		addConfigToGroupHits,
+		swaggerHits,
 	}
 
 	// Prometheus Registry to register metrics.
@@ -261,6 +268,13 @@ func CountAddConfigToGroup(f func(http.ResponseWriter, *http.Request)) func(http
 	return func(w http.ResponseWriter, r *http.Request) {
 		httpHits.Inc()
 		addConfigToGroupHits.Inc()
+		f(w, r) // original function call
+	}
+}
+func SwaggerHits(f func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		httpHits.Inc()
+		swaggerHits.Inc()
 		f(w, r) // original function call
 	}
 }

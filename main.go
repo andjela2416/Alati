@@ -42,25 +42,29 @@ func main() {
 		store: st,
 	}
 
-	router.HandleFunc("/config/", server.createConfigHandler).Methods("POST")
-	router.HandleFunc("/configs/", server.getAllHandler).Methods("GET")
+
+	router.HandleFunc("/config/", CountCreateConfig(server.createConfigHandler)).Methods("POST")
+	router.HandleFunc("/configs/", CountGetAllConfig(server.getAllHandler)).Methods("GET")
+
 	/*router.HandleFunc("/config/{id}/", server.getConfigHandler).Methods("GET")
 	router.HandleFunc("/config/{id}/", server.delConfigHandler).Methods("DELETE")*/
-	router.HandleFunc("/config/{id}/{version}/", server.getConfigHandler).Methods("GET")
-	router.HandleFunc("/config/{id}/{version}/", server.delConfigHandler).Methods("DELETE")
-	router.HandleFunc("/config/{id}/{version}/{labels}", server.getPostByLabel).Methods("GET")
+	router.HandleFunc("/config/{id}/{version}/", CountGetConfig(server.getConfigHandler)).Methods("GET")
+	router.HandleFunc("/config/{id}/{version}/", CountDelConfig(server.delConfigHandler)).Methods("DELETE")
+	router.HandleFunc("/config/{id}/{version}/{labels}", CountGetConfigByLabels(server.getPostByLabel)).Methods("GET")
 
-	router.HandleFunc("/group/", server.createGroupHandler).Methods("POST")
-	router.HandleFunc("/groups/", server.getAllGroupsHandler).Methods("GET") //.
+	router.HandleFunc("/group/", CountCreateGroup(server.createGroupHandler)).Methods("POST")
+	router.HandleFunc("/groups/", CountGetAllGroup(server.getAllGroupsHandler)).Methods("GET") //.
 	/*router.HandleFunc("/group/{id}/", server.getGroupHandler).Methods("GET")
 	router.HandleFunc("/group/{id}/", server.delGroupHandler).Methods("DELETE")*/
-	router.HandleFunc("/group/{id}/{version}/", server.getGroupHandler).Methods("GET")
-	router.HandleFunc("/group/{id}/{version}/", server.delGroupHandler).Methods("DELETE")
-	router.HandleFunc("/group/{id}/{version}/{labels}", server.getGroupsByLabel).Methods("GET")
-	router.HandleFunc("/group/{groupId}/{g_version}/config/{id}/{c_version}/", server.delConfigFromGroupHandler).Methods("DELETE")
-	router.HandleFunc("/group/{g_id}/{g_version}/config/{c_id}/{c_version}/", server.addConfigToGroup).Methods("PUT")
-	router.HandleFunc("/swagger.yaml", server.swaggerHandler).Methods("GET")
+	router.HandleFunc("/group/{id}/{version}/", CountGetGroup(server.getGroupHandler)).Methods("GET")
+	router.HandleFunc("/group/{id}/{version}/", CountDelGroup(server.delGroupHandler)).Methods("DELETE")
+	router.HandleFunc("/group/{id}/{version}/{labels}", CountGetGroupByLabels(server.getGroupsByLabel)).Methods("GET")
+	router.HandleFunc("/group/{groupId}/{g_version}/config/{id}/{c_version}/", CountDelGroupByLabels(server.delConfigFromGroupHandler)).Methods("DELETE")
+	router.HandleFunc("/group/{g_id}/{g_version}/config/{c_id}/{c_version}/", CountAddConfigToGroup(server.addConfigToGroup)).Methods("PUT")
+	router.HandleFunc("/swagger.yaml", SwaggerHits(server.swaggerHandler)).Methods("GET")
 
+	// s c r a p e m e t r i c s f rom s e r v i c e , show UI on l o c a l h o s t : 9 0 9 0
+	router.Path("/metrics").Handler(metricsHandler())
 	// SwaggerUI
 	optionsDevelopers := middleware.SwaggerUIOpts{SpecURL: "swagger.yaml"}
 	developerDocumentationHandler := middleware.SwaggerUI(optionsDevelopers, nil)
