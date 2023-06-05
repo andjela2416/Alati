@@ -41,6 +41,7 @@ func main() {
 	server := configServer{
 		store: st,
 	}
+
 	router.HandleFunc("/config/", server.createConfigHandler).Methods("POST")
 	router.HandleFunc("/configs/", server.getAllHandler).Methods("GET")
 	/*router.HandleFunc("/config/{id}/", server.getConfigHandler).Methods("GET")
@@ -64,13 +65,6 @@ func main() {
 	optionsDevelopers := middleware.SwaggerUIOpts{SpecURL: "swagger.yaml"}
 	developerDocumentationHandler := middleware.SwaggerUI(optionsDevelopers, nil)
 	router.Handle("/docs", developerDocumentationHandler)
-
-	// ReDoc
-	// optionsShared := middleware.RedocOpts{SpecURL: "/swagger.yaml"}
-	// sharedDocumentationHandler := middleware.Redoc(optionsShared, nil)
-	// router.Handle("/docs", sharedDocumentationHandler)
-
-	// start server
 
 	// start server
 
