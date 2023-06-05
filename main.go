@@ -41,8 +41,11 @@ func main() {
 	server := configServer{
 		store: st,
 	}
+
+
 	router.HandleFunc("/config/", CountCreateConfig(server.createConfigHandler)).Methods("POST")
 	router.HandleFunc("/configs/", CountGetAllConfig(server.getAllHandler)).Methods("GET")
+
 	/*router.HandleFunc("/config/{id}/", server.getConfigHandler).Methods("GET")
 	router.HandleFunc("/config/{id}/", server.delConfigHandler).Methods("DELETE")*/
 	router.HandleFunc("/config/{id}/{version}/", CountGetConfig(server.getConfigHandler)).Methods("GET")

@@ -1,7 +1,6 @@
 package store
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -112,12 +111,15 @@ func (ps *Store) GetOneConfig(id string, version string) (*Config, error) {
 func (cs *Store) SaveGroup(post *Group) (*Group, error) {
 	kv := cs.cli.KV()
 
+	sid, rid := generateGroupKey(post.Version, post.Labels)
+	post.Id = rid
+
 	data, err := json.Marshal(post)
 	if err != nil {
 		return nil, err
 	}
 
-	p := &api.KVPair{Key: constructKey2(post.Id), Value: data}
+	p := &api.KVPair{Key: sid, Value: data} // constructKey2(post.Id), Value: data}
 	_, err = kv.Put(p, nil)
 	if err != nil {
 		return nil, err
@@ -127,9 +129,11 @@ func (cs *Store) SaveGroup(post *Group) (*Group, error) {
 }
 
 func (ps *Store) GetAll() ([]*Config, error) {
+
 	kv := ps.cli.KV()
 	data, _, err := kv.List(all, nil)
 	if err != nil {
+
 		return nil, err
 	}
 
@@ -138,6 +142,7 @@ func (ps *Store) GetAll() ([]*Config, error) {
 		config := &Config{}
 		err = json.Unmarshal(pair.Value, config)
 		if err != nil {
+
 			return nil, err
 		}
 		configs = append(configs, config)
@@ -146,9 +151,11 @@ func (ps *Store) GetAll() ([]*Config, error) {
 	return configs, nil
 }
 func (ps *Store) GetAllGroups() ([]*Group, error) {
+
 	kv := ps.cli.KV()
 	data, _, err := kv.List(allGroups, nil)
 	if err != nil {
+
 		return nil, err
 	}
 
@@ -157,6 +164,7 @@ func (ps *Store) GetAllGroups() ([]*Group, error) {
 		group := &Group{}
 		err = json.Unmarshal(pair.Value, group)
 		if err != nil {
+
 			return nil, err
 		}
 		groups = append(groups, group)
@@ -174,7 +182,7 @@ func (ps *Store) Delete(id string, version string) (map[string]string, error) {
 
 	return map[string]string{"Deleted": id}, nil
 }
-func (ps *Store) DeleteGroup(ctx context.Context, id string, version string) (map[string]string, error) {
+func (ps *Store) DeleteGroup(id string, version string) (map[string]string, error) {
 	kv := ps.cli.KV()
 	_, err := kv.DeleteTree(constructGroupKey(id, version, ""), nil)
 	if err != nil {
@@ -185,6 +193,7 @@ func (ps *Store) DeleteGroup(ctx context.Context, id string, version string) (ma
 }
 
 func (ps *Store) Config(config *Config) (*Config, error) {
+
 	kv := ps.cli.KV()
 
 	sid, rid := generateKey(config.Version, config.Labels)
@@ -192,12 +201,14 @@ func (ps *Store) Config(config *Config) (*Config, error) {
 
 	data, err := json.Marshal(config)
 	if err != nil {
+
 		return nil, err
 	}
 
 	p := &api.KVPair{Key: sid, Value: data}
 	_, err = kv.Put(p, nil)
 	if err != nil {
+
 		return nil, err
 	}
 
@@ -205,6 +216,7 @@ func (ps *Store) Config(config *Config) (*Config, error) {
 }
 
 func (ps *Store) PostGroup(post *Group) (*Group, error) {
+
 	kv := ps.cli.KV()
 
 	sid, rid := generateGroupKey(post.Version, post.Labels)
@@ -212,12 +224,14 @@ func (ps *Store) PostGroup(post *Group) (*Group, error) {
 
 	data, err := json.Marshal(post)
 	if err != nil {
+
 		return nil, err
 	}
 
 	p := &api.KVPair{Key: sid, Value: data}
 	_, err = kv.Put(p, nil)
 	if err != nil {
+
 		return nil, err
 	}
 
@@ -274,6 +288,7 @@ func (ps *Store) GetConfigsByLabels(id string, version string, labels string) ([
 
 	return configs, nil
 }
+
 func (ps *Store) SaveRequestId() string {
 	kv := ps.cli.KV()
 
@@ -308,3 +323,4 @@ func generateRequestId() string {
 
 	return rid
 }
+

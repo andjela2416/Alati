@@ -4,12 +4,20 @@ import (
 	"errors"
 	s "example.com/mod/store"
 	"github.com/gorilla/mux"
+	"github.com/opentracing/opentracing-go"
+	"io"
 	"mime"
 	"net/http"
 )
 
+const (
+	name = "post_service"
+)
+
 type configServer struct {
-	store *s.Store
+	store  *s.Store
+	tracer opentracing.Tracer
+	closer io.Closer
 	//data      map[string]*s.Config
 	//groupData map[string]*s.Group
 }
@@ -23,6 +31,7 @@ type configServer struct {
 //	400: ErrorResponse
 //	201: ResponseConfig
 func (cs *configServer) createConfigHandler(w http.ResponseWriter, req *http.Request) {
+
 	contentType := req.Header.Get("Content-Type")
 	requestId := req.Header.Get("x-idempotency-key")
 	mediatype, _, err := mime.ParseMediaType(contentType)
@@ -70,6 +79,7 @@ func (cs *configServer) createConfigHandler(w http.ResponseWriter, req *http.Req
 //
 //	200: []ResponseConfig
 func (cs *configServer) getAllHandler(w http.ResponseWriter, req *http.Request) {
+
 	allTasks, err := cs.store.GetAll()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -108,6 +118,7 @@ func (cs *configServer) getConfigHandler(w http.ResponseWriter, req *http.Reques
 func (cs *configServer) delConfigHandler(w http.ResponseWriter, req *http.Request) {
 
 	id := mux.Vars(req)["id"]
+
 	version := mux.Vars(req)["version"]
 
 	msg, err := cs.store.Delete(id, version)
@@ -135,10 +146,12 @@ func (cs *configServer) delConfigHandler(w http.ResponseWriter, req *http.Reques
 //	400: ErrorResponse
 //	201: ResponseGroup
 func (cs *configServer) createGroupHandler(w http.ResponseWriter, req *http.Request) {
+
 	contentType := req.Header.Get("Content-Type")
 	requestId := req.Header.Get("x-idempotency-key")
 	mediatype, _, err := mime.ParseMediaType(contentType)
 	if err != nil {
+
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -147,6 +160,7 @@ func (cs *configServer) createGroupHandler(w http.ResponseWriter, req *http.Requ
 		http.Error(w, err.Error(), http.StatusUnsupportedMediaType)
 		return
 	}
+
 	rt, err := decodeGroup(req.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -209,17 +223,17 @@ func (cs *configServer) addConfigToGroup(w http.ResponseWriter, req *http.Reques
 		return
 	}
 	/*config := s.Config{
-		// Postavite polja konfiguracije prema vašim potrebama
 		Id: task.Id,
 	}*/
 	group2.Configs = append(group2.Configs, *task)
 	//cs.groupData[groupId] = group2
-	grupas, err := cs.store.SaveGroup(group2)
+	/*grupas, err := cs.store.SaveGroup(group2)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
-	}
-	renderJSON(w, grupas)
+	}*/
+	cs.store.SaveGroup(group2)
+	renderJSON(w, group2)
 	/*groupId := mux.Vars(req)["g_id"]
 	id := mux.Vars(req)["c_id"]
 
@@ -261,6 +275,7 @@ func (cs *configServer) addConfigToGroup(w http.ResponseWriter, req *http.Reques
 //
 //	200: []ResponseGroup
 func (cs *configServer) getAllGroupsHandler(w http.ResponseWriter, req *http.Request) {
+
 	allTasks, err := cs.store.GetAllGroups()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -302,7 +317,7 @@ func (cs *configServer) delGroupHandler(w http.ResponseWriter, req *http.Request
 	id := mux.Vars(req)["id"]
 	version := mux.Vars(req)["version"]
 
-	msg, err := cs.store.Delete(id, version)
+	msg, err := cs.store.DeleteGroup(id, version)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
