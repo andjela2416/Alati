@@ -6,7 +6,7 @@ import (
 )
 
 const (
-//posts       = "posts/%s/%s"
+	//posts       = "posts/%s/%s"
 	//postsLabels = "posts/%s/%s/%s"
 	//all         = "posts"
 	//config        = "configs/%s/%s"
@@ -29,15 +29,6 @@ func generateKey(version string, labels string) (string, string) {
 	}
 
 }
-func generateGroupKey(version string, labels string) (string, string) {
-	id := uuid.New().String()
-	if labels != "" {
-		return fmt.Sprintf(groupsLabels, id, version, labels), id
-	} else {
-		return fmt.Sprintf(groups, id, version), id
-	}
-
-}
 
 func generateGroupKey(version string, labels string) (string, string) {
 	id := uuid.New().String()
@@ -45,14 +36,6 @@ func generateGroupKey(version string, labels string) (string, string) {
 		return fmt.Sprintf(groupsLabels, id, version, labels), id
 	} else {
 		return fmt.Sprintf(groups, id, version), id
-	}
-
-}
-func constructGroupKey(id string, version string, labels string) string {
-	if labels != "" {
-		return fmt.Sprintf(groupsLabels, id, version, labels)
-	} else {
-		return fmt.Sprintf(groups, id, version)
 	}
 
 }

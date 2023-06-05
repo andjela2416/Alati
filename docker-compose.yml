@@ -28,7 +28,7 @@ services:
     environment:
       - DB=consul
       - DBPORT=8500
-      - JAEGER_SERVICE_NAME=posts
+      - JAEGER_SERVICE_NAME=configs
       - JAEGER_AGENT_HOST=tracing
       - JAEGER_AGENT_PORT=6831
       - JAEGER_SAMPLER_MANAGER_HOST_PORT=jaeger:5778
