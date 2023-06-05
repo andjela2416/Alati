@@ -1,10 +1,8 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	s "example.com/mod/store"
-	"fmt"
 	"github.com/gorilla/mux"
 	"mime"
 	"net/http"
@@ -13,7 +11,7 @@ import (
 type configServer struct {
 	store *s.Store
 	//data      map[string]*s.Config
-	groupData map[string]*s.Group
+	//groupData map[string]*s.Group
 }
 
 // swagger:route POST /config/ config createConfig
@@ -156,20 +154,43 @@ func (cs *configServer) createGroupHandler(w http.ResponseWriter, req *http.Requ
 //	400: ErrorResponse
 //	201: ResponseGroup
 func (cs *configServer) addConfigToGroup(w http.ResponseWriter, req *http.Request) {
-	/*groupId := mux.Vars(req)["g_id"]
+	groupId := mux.Vars(req)["g_id"]
+	groupVersion := mux.Vars(req)["g_version"]
 	id := mux.Vars(req)["c_id"]
-	task, ok := cs.groupData[id]
-	group, ook := cs.groupData[groupId]
-	if !ok || !ook {
-		err := errors.New("key not found")
+	configVersion := mux.Vars(req)["c_version"]
+	/*group, groupExists := cs.groupData[groupId]
+	if !groupExists {
+		err := errors.New("group not found")
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}*/
+
+	group2, err := cs.store.GetOneGroup(groupId, groupVersion)
+	if err != nil {
+		err := errors.New("group not found")
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
-	group.Configs = append(group.Configs, *task)
-	cs.groupData[groupId] = group
-	*/
-	groupId := mux.Vars(req)["g_id"]
+	task, err := cs.store.GetOneConfig(id, configVersion)
+	if err != nil {
+		err := errors.New("config not found")
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	/*config := s.Config{
+		// Postavite polja konfiguracije prema vašim potrebama
+		Id: task.Id,
+	}*/
+	group2.Configs = append(group2.Configs, *task)
+	//cs.groupData[groupId] = group2
+	grupas, err := cs.store.SaveGroup(group2)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	renderJSON(w, grupas)
+	/*groupId := mux.Vars(req)["g_id"]
 	id := mux.Vars(req)["c_id"]
 
 	// Dekodiranje JSON podataka iz zahteva u objekat tipa Config
@@ -200,7 +221,7 @@ func (cs *configServer) addConfigToGroup(w http.ResponseWriter, req *http.Reques
 	group.Configs = append(group.Configs, config)
 	cs.groupData[groupId] = group
 
-	return
+	return*/
 }
 
 // swagger:route GET /groups/ group getGroups
@@ -235,6 +256,7 @@ func (cs *configServer) getGroupHandler(w http.ResponseWriter, req *http.Request
 		return
 	}
 	renderJSON(w, task)
+
 }
 
 // swagger:route DELETE /group/{id}/ group deleteGroup
@@ -273,10 +295,20 @@ func (cs *configServer) delGroupHandler(w http.ResponseWriter, req *http.Request
 //	404: ErrorResponse
 //	204: NoContentResponse
 func (cs *configServer) delConfigFromGroupHandler(w http.ResponseWriter, req *http.Request) {
-	groupId := mux.Vars(req)["g_id"]
+	/*groupId := mux.Vars(req)["g_id"]
 	id := mux.Vars(req)["c_id"]
 	group, ok := cs.groupData[groupId]
 	if !ok {
+		err := errors.New("group not found")
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}*/
+	groupId := mux.Vars(req)["groupId"]
+	groupVersion := mux.Vars(req)["g_version"]
+	//configVersion := mux.Vars(req)["c_version"]
+	id := mux.Vars(req)["id"]
+	group, err2 := cs.store.GetOneGroup(groupId, groupVersion)
+	if err2 != nil {
 		err := errors.New("group not found")
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -284,13 +316,24 @@ func (cs *configServer) delConfigFromGroupHandler(w http.ResponseWriter, req *ht
 	for i, config := range group.Configs {
 		if config.Id == id {
 			group.Configs = append(group.Configs[:i], group.Configs[i+1:]...)
-			cs.groupData[groupId] = group
+			//cs.groupData[groupId] = group
+			grupas, err := cs.store.SaveGroup(group)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			renderJSON(w, grupas)
 			return
 		}
 	}
 	err := errors.New("config not found in group")
 	http.Error(w, err.Error(), http.StatusNotFound)
-	return
+	grupas, err := cs.store.SaveGroup(group)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	renderJSON(w, grupas)
 }
 
 func (ts *configServer) swaggerHandler(w http.ResponseWriter, r *http.Request) {
