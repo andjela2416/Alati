@@ -42,6 +42,9 @@ func main() {
 		store: st,
 	}
 
+	const (
+		name = "config_service"
+	)
 
 	router.HandleFunc("/config/", CountCreateConfig(server.createConfigHandler)).Methods("POST")
 	router.HandleFunc("/configs/", CountGetAllConfig(server.getAllHandler)).Methods("GET")
