@@ -24,6 +24,7 @@ type configServer struct {
 //	201: ResponseConfig
 func (cs *configServer) createConfigHandler(w http.ResponseWriter, req *http.Request) {
 	contentType := req.Header.Get("Content-Type")
+	requestId := req.Header.Get("x-idempotency-key")
 	mediatype, _, err := mime.ParseMediaType(contentType)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -40,12 +41,26 @@ func (cs *configServer) createConfigHandler(w http.ResponseWriter, req *http.Req
 		return
 	}
 
-	post, err := cs.store.Config(rt)
-	if err != nil {
+	//post, err := cs.store.Config(rt)
+	/*if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
+	}*/
+
+	if cs.store.FindRequestId(requestId) == true {
+		http.Error(w, "Request has been already sent", http.StatusBadRequest)
+		return
 	}
+	post, err := cs.store.Config(rt)
+
+	reqId := ""
+
+	if err == nil {
+		reqId = cs.store.SaveRequestId()
+	}
+
 	renderJSON(w, post)
+	renderJSON(w, "Idempotence key:"+reqId)
 }
 
 // swagger:route GET /configs/ config getConfigs
@@ -121,6 +136,7 @@ func (cs *configServer) delConfigHandler(w http.ResponseWriter, req *http.Reques
 //	201: ResponseGroup
 func (cs *configServer) createGroupHandler(w http.ResponseWriter, req *http.Request) {
 	contentType := req.Header.Get("Content-Type")
+	requestId := req.Header.Get("x-idempotency-key")
 	mediatype, _, err := mime.ParseMediaType(contentType)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -137,12 +153,26 @@ func (cs *configServer) createGroupHandler(w http.ResponseWriter, req *http.Requ
 		return
 	}
 
-	post, err := cs.store.PostGroup(rt)
-	if err != nil {
+	//post, err := cs.store.PostGroup(rt)
+	/*if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
+	}*/
+
+	if cs.store.FindRequestId(requestId) == true {
+		http.Error(w, "Request has been already sent", http.StatusBadRequest)
+		return
 	}
+	post, err := cs.store.PostGroup(rt)
+
+	reqId := ""
+
+	if err == nil {
+		reqId = cs.store.SaveRequestId()
+	}
+
 	renderJSON(w, post)
+	renderJSON(w, "Idempotence key:"+reqId)
 }
 
 // swagger:route PUT /group/{g_id}/config/{c_id}/ group addConfigToGroup
