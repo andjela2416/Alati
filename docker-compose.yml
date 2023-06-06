@@ -19,7 +19,7 @@ services:
       - "14268:14268"
       - "14250:14250"
   app:
-    image: andjela2416/alati:latest
+    image: andjela0987/alati:latest
     build: .
     restart: always
     ports:
