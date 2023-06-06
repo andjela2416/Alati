@@ -5,7 +5,7 @@ FROM golang:latest as builder
 LABEL maintainer="andjela2416 <andjelalozanov123@gmail.com>"
 
 # Set the Current Working Directory inside the container
-WORKDIR /app
+WORKDIR /Alati
 
 # Copy go mod and sum files
 COPY go.mod go.sum ./
@@ -30,10 +30,10 @@ RUN apk --no-cache add ca-certificates
 WORKDIR /root/
 
 # Copy the Pre-built binary file from the previous stage
-COPY --from=builder /app/main .
+COPY --from=builder /Alati/main .
 COPY ./swagger.yaml .
 
 EXPOSE 8000
 
-# Command to run the executable
+# Command to run the execu---table
 CMD ["./main"]

@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	ps "example.com/mod/store"
 	"fmt"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/gorilla/mux"
@@ -14,16 +13,6 @@ import (
 	"time"
 )
 
-//docker run -p 8000:8000 gorest
-
-/*type Service struct {
-	data map[string]*Config `json:"data"`
-}
-
-type Config struct {
-	entries map[string]string `json:"entries"`
-}*/
-
 func main() {
 	fmt.Println("Hello world")
 
@@ -33,16 +22,19 @@ func main() {
 	router := mux.NewRouter()
 	router.StrictSlash(true)
 
-	st, err := ps.New()
+	/*st, err := ps.New()
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	server := configServer{
 		store: st,
+	}*/
+	server, err := NewPostServer()
+	if err != nil {
+		log.Fatal(err)
+		return
 	}
-
-
 	router.HandleFunc("/config/", CountCreateConfig(server.createConfigHandler)).Methods("POST")
 	router.HandleFunc("/configs/", CountGetAllConfig(server.getAllHandler)).Methods("GET")
 

@@ -1,8 +1,10 @@
 package store
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
+	tracer "example.com/mod/tracer"
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/hashicorp/consul/api"
@@ -29,11 +31,14 @@ func New() (*Store, error) {
 	}, nil
 }
 
-func (ps *Store) Get(id string, version string) ([]*Config, error) {
+func (ps *Store) Get(ctx context.Context, id string, version string) ([]*Config, error) {
+	span := tracer.StartSpanFromContext(ctx, "GetConfig")
+	defer span.Finish()
 	kv := ps.cli.KV()
 
 	data, _, err := kv.List(constructKey(id, version, ""), nil)
 	if err != nil {
+		tracer.LogError(span, err)
 		return nil, err
 	}
 
@@ -42,17 +47,22 @@ func (ps *Store) Get(id string, version string) ([]*Config, error) {
 		config := &Config{}
 		err = json.Unmarshal(pair.Value, config)
 		if err != nil {
+			tracer.LogError(span, err)
 			return nil, err
 		}
 		configs = append(configs, config)
 	}
 	return configs, nil
 }
-func (ps *Store) GetGroup(id string, version string) ([]*Group, error) {
+func (ps *Store) GetGroup(ctx context.Context, id string, version string) ([]*Group, error) {
+	span := tracer.StartSpanFromContext(ctx, "GetGroup")
+	defer span.Finish()
+
 	kv := ps.cli.KV()
 
 	data, _, err := kv.List(constructGroupKey(id, version, ""), nil)
 	if err != nil {
+		tracer.LogError(span, err)
 		return nil, err
 	}
 
@@ -61,17 +71,21 @@ func (ps *Store) GetGroup(id string, version string) ([]*Group, error) {
 		config := &Group{}
 		err = json.Unmarshal(pair.Value, config)
 		if err != nil {
+			tracer.LogError(span, err)
 			return nil, err
 		}
 		configs = append(configs, config)
 	}
 	return configs, nil
 }
-func (ps *Store) GetOneGroup(id string, version string) (*Group, error) {
+func (ps *Store) GetOneGroup(ctx context.Context, id string, version string) (*Group, error) {
+	span := tracer.StartSpanFromContext(ctx, "GetOneGroup")
+	defer span.Finish()
 	kv := ps.cli.KV()
 
 	data, _, err := kv.List(constructGroupKey(id, version, ""), nil)
 	if err != nil {
+		tracer.LogError(span, err)
 		return nil, err
 	}
 
@@ -79,6 +93,7 @@ func (ps *Store) GetOneGroup(id string, version string) (*Group, error) {
 		config := &Group{}
 		err = json.Unmarshal(pair.Value, config)
 		if err != nil {
+			tracer.LogError(span, err)
 			return nil, err
 		}
 		return config, nil
@@ -87,11 +102,14 @@ func (ps *Store) GetOneGroup(id string, version string) (*Group, error) {
 	// Ako nijedna grupa nije pronađena, možete vratiti odgovarajuću grešku
 	return nil, errors.New("group not found, not exist")
 }
-func (ps *Store) GetOneConfig(id string, version string) (*Config, error) {
+func (ps *Store) GetOneConfig(ctx context.Context, id string, version string) (*Config, error) {
+	span := tracer.StartSpanFromContext(ctx, "GetOneConfig")
+	defer span.Finish()
 	kv := ps.cli.KV()
 
 	data, _, err := kv.List(constructKey(id, version, ""), nil)
 	if err != nil {
+		tracer.LogError(span, err)
 		return nil, err
 	}
 
@@ -99,6 +117,7 @@ func (ps *Store) GetOneConfig(id string, version string) (*Config, error) {
 		config := &Config{}
 		err = json.Unmarshal(pair.Value, config)
 		if err != nil {
+			tracer.LogError(span, err)
 			return nil, err
 		}
 		return config, nil
@@ -108,7 +127,9 @@ func (ps *Store) GetOneConfig(id string, version string) (*Config, error) {
 	return nil, errors.New("config not found, not exist")
 }
 
-func (cs *Store) SaveGroup(post *Group) (*Group, error) {
+func (cs *Store) SaveGroup(ctx context.Context, post *Group) (*Group, error) {
+	span := tracer.StartSpanFromContext(ctx, "SaveGroup")
+	defer span.Finish()
 	kv := cs.cli.KV()
 
 	sid, rid := generateGroupKey(post.Version, post.Labels)
@@ -116,24 +137,27 @@ func (cs *Store) SaveGroup(post *Group) (*Group, error) {
 
 	data, err := json.Marshal(post)
 	if err != nil {
+		tracer.LogError(span, err)
 		return nil, err
 	}
 
 	p := &api.KVPair{Key: sid, Value: data} // constructKey2(post.Id), Value: data}
 	_, err = kv.Put(p, nil)
 	if err != nil {
+		tracer.LogError(span, err)
 		return nil, err
 	}
 
 	return post, nil
 }
 
-func (ps *Store) GetAll() ([]*Config, error) {
-
+func (ps *Store) GetAll(ctx context.Context) ([]*Config, error) {
+	span := tracer.StartSpanFromContext(ctx, "GetAll")
+	defer span.Finish()
 	kv := ps.cli.KV()
 	data, _, err := kv.List(all, nil)
 	if err != nil {
-
+		tracer.LogError(span, err)
 		return nil, err
 	}
 
@@ -142,7 +166,7 @@ func (ps *Store) GetAll() ([]*Config, error) {
 		config := &Config{}
 		err = json.Unmarshal(pair.Value, config)
 		if err != nil {
-
+			tracer.LogError(span, err)
 			return nil, err
 		}
 		configs = append(configs, config)
@@ -150,12 +174,13 @@ func (ps *Store) GetAll() ([]*Config, error) {
 
 	return configs, nil
 }
-func (ps *Store) GetAllGroups() ([]*Group, error) {
-
+func (ps *Store) GetAllGroups(ctx context.Context) ([]*Group, error) {
+	span := tracer.StartSpanFromContext(ctx, "GetAllGroups")
+	defer span.Finish()
 	kv := ps.cli.KV()
 	data, _, err := kv.List(allGroups, nil)
 	if err != nil {
-
+		tracer.LogError(span, err)
 		return nil, err
 	}
 
@@ -164,7 +189,7 @@ func (ps *Store) GetAllGroups() ([]*Group, error) {
 		group := &Group{}
 		err = json.Unmarshal(pair.Value, group)
 		if err != nil {
-
+			tracer.LogError(span, err)
 			return nil, err
 		}
 		groups = append(groups, group)
@@ -173,26 +198,34 @@ func (ps *Store) GetAllGroups() ([]*Group, error) {
 	return groups, nil
 }
 
-func (ps *Store) Delete(id string, version string) (map[string]string, error) {
+func (ps *Store) Delete(ctx context.Context, id string, version string) (map[string]string, error) {
+	span := tracer.StartSpanFromContext(ctx, "Delete")
+	defer span.Finish()
 	kv := ps.cli.KV()
 	_, err := kv.DeleteTree(constructKey(id, version, ""), nil)
 	if err != nil {
+		tracer.LogError(span, err)
 		return nil, err
 	}
 
 	return map[string]string{"Deleted": id}, nil
 }
-func (ps *Store) DeleteGroup(id string, version string) (map[string]string, error) {
+func (ps *Store) DeleteGroup(ctx context.Context, id string, version string) (map[string]string, error) {
+	span := tracer.StartSpanFromContext(ctx, "DeleteGroup")
+	defer span.Finish()
 	kv := ps.cli.KV()
 	_, err := kv.DeleteTree(constructGroupKey(id, version, ""), nil)
 	if err != nil {
+		tracer.LogError(span, err)
 		return nil, err
 	}
 
 	return map[string]string{"Deleted": id}, nil
 }
 
-func (ps *Store) Config(config *Config) (*Config, error) {
+func (ps *Store) Config(ctx context.Context, config *Config) (*Config, error) {
+	span := tracer.StartSpanFromContext(ctx, "Config")
+	defer span.Finish()
 
 	kv := ps.cli.KV()
 
@@ -201,21 +234,23 @@ func (ps *Store) Config(config *Config) (*Config, error) {
 
 	data, err := json.Marshal(config)
 	if err != nil {
-
+		tracer.LogError(span, err)
 		return nil, err
 	}
 
 	p := &api.KVPair{Key: sid, Value: data}
 	_, err = kv.Put(p, nil)
 	if err != nil {
-
+		tracer.LogError(span, err)
 		return nil, err
 	}
 
 	return config, nil
 }
 
-func (ps *Store) PostGroup(post *Group) (*Group, error) {
+func (ps *Store) PostGroup(ctx context.Context, post *Group) (*Group, error) {
+	span := tracer.StartSpanFromContext(ctx, "PostGroup")
+	defer span.Finish()
 
 	kv := ps.cli.KV()
 
@@ -224,25 +259,28 @@ func (ps *Store) PostGroup(post *Group) (*Group, error) {
 
 	data, err := json.Marshal(post)
 	if err != nil {
-
+		tracer.LogError(span, err)
 		return nil, err
 	}
 
 	p := &api.KVPair{Key: sid, Value: data}
 	_, err = kv.Put(p, nil)
 	if err != nil {
-
+		tracer.LogError(span, err)
 		return nil, err
 	}
 
 	return post, nil
 }
 
-func (ps *Store) GetGroupsByLabels(id string, version string, labels string) ([]*Group, error) {
+func (ps *Store) GetGroupsByLabels(ctx context.Context, id string, version string, labels string) ([]*Group, error) {
+	span := tracer.StartSpanFromContext(ctx, "GetGroupsByLabel")
+	defer span.Finish()
 	kv := ps.cli.KV()
 
 	data, _, err := kv.List(constructGroupKey(id, version, labels), nil)
 	if err != nil {
+		tracer.LogError(span, err)
 		return nil, err
 	}
 
@@ -252,22 +290,27 @@ func (ps *Store) GetGroupsByLabels(id string, version string, labels string) ([]
 		post := &Group{}
 		err = json.Unmarshal(pair.Value, post)
 		if err != nil {
+			tracer.LogError(span, err)
 			return nil, err
 		}
 		posts = append(posts, post)
 	}
 
 	if err != nil {
+		tracer.LogError(span, err)
 		return nil, err
 	}
 
 	return posts, nil
 }
-func (ps *Store) GetConfigsByLabels(id string, version string, labels string) ([]*Config, error) {
+func (ps *Store) GetConfigsByLabels(ctx context.Context, id string, version string, labels string) ([]*Config, error) {
+	span := tracer.StartSpanFromContext(ctx, "GetConfigsByLabel")
+	defer span.Finish()
 	kv := ps.cli.KV()
 
 	data, _, err := kv.List(constructKey(id, version, labels), nil)
 	if err != nil {
+		tracer.LogError(span, err)
 		return nil, err
 	}
 
@@ -277,34 +320,42 @@ func (ps *Store) GetConfigsByLabels(id string, version string, labels string) ([
 		config := &Config{}
 		err = json.Unmarshal(pair.Value, config)
 		if err != nil {
+			tracer.LogError(span, err)
 			return nil, err
 		}
 		configs = append(configs, config)
 	}
 
 	if err != nil {
+		tracer.LogError(span, err)
 		return nil, err
 	}
 
 	return configs, nil
 }
 
-func (ps *Store) SaveRequestId() string {
+func (ps *Store) SaveRequestId(ctx context.Context) string {
+	span := tracer.StartSpanFromContext(ctx, "SaveRequestId")
+	defer span.Finish()
 	kv := ps.cli.KV()
 
-	reqId := generateRequestId()
+	reqId := generateRequestId(ctx)
 
 	i := &api.KVPair{Key: reqId, Value: nil}
 
 	_, err := kv.Put(i, nil)
 	if err != nil {
+		tracer.LogError(span, err)
 		return "error"
 	}
 	return reqId
 
 }
 
-func (ps *Store) FindRequestId(requestId string) bool {
+func (ps *Store) FindRequestId(ctx context.Context, requestId string) bool {
+	span := tracer.StartSpanFromContext(ctx, "GetRequestId")
+	defer span.Finish()
+
 	kv := ps.cli.KV()
 
 	key, _, err := kv.Get(requestId, nil)
@@ -312,15 +363,17 @@ func (ps *Store) FindRequestId(requestId string) bool {
 	fmt.Println(key)
 
 	if err != nil || key == nil {
+		tracer.LogError(span, err)
 		return false
 	}
 
 	return true
 
 }
-func generateRequestId() string {
+func generateRequestId(ctx context.Context) string {
+	span := tracer.StartSpanFromContext(ctx, "Generate")
+	defer span.Finish()
 	rid := uuid.New().String()
 
 	return rid
 }
-

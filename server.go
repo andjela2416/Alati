@@ -1,8 +1,11 @@
 package main
 
 import (
+	"context"
 	"errors"
 	s "example.com/mod/store"
+	tracer "example.com/mod/tracer"
+	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/opentracing/opentracing-go"
 	"io"
@@ -22,6 +25,32 @@ type configServer struct {
 	//groupData map[string]*s.Group
 }
 
+func NewPostServer() (*configServer, error) {
+	store, err := s.New()
+	if err != nil {
+		return nil, err
+	}
+
+	tracer, closer := tracer.Init(name)
+	opentracing.SetGlobalTracer(tracer)
+	return &configServer{
+		store:  store,
+		tracer: tracer,
+		closer: closer,
+	}, nil
+}
+func (s *configServer) GetTracer() opentracing.Tracer {
+	return s.tracer
+}
+
+func (s *configServer) GetCloser() io.Closer {
+	return s.closer
+}
+
+func (s *configServer) CloseTracer() error {
+	return s.closer.Close()
+}
+
 // swagger:route POST /config/ config createConfig
 // Add new config
 //
@@ -31,6 +60,12 @@ type configServer struct {
 //	400: ErrorResponse
 //	201: ResponseConfig
 func (cs *configServer) createConfigHandler(w http.ResponseWriter, req *http.Request) {
+	span := tracer.StartSpanFromRequest("creteConfigHandler", cs.tracer, req)
+	defer span.Finish()
+
+	span.LogFields(
+		tracer.LogString("handler", fmt.Sprintf("handling config create at %s\n", req.URL.Path)),
+	)
 
 	contentType := req.Header.Get("Content-Type")
 	requestId := req.Header.Get("x-idempotency-key")
@@ -44,7 +79,8 @@ func (cs *configServer) createConfigHandler(w http.ResponseWriter, req *http.Req
 		http.Error(w, err.Error(), http.StatusUnsupportedMediaType)
 		return
 	}
-	rt, err := decodeBody(req.Body)
+	ctx := tracer.ContextWithSpan(context.Background(), span)
+	rt, err := decodeBody(ctx, req.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -56,20 +92,20 @@ func (cs *configServer) createConfigHandler(w http.ResponseWriter, req *http.Req
 		return
 	}*/
 
-	if cs.store.FindRequestId(requestId) == true {
+	if cs.store.FindRequestId(ctx, requestId) == true {
 		http.Error(w, "Request has been already sent", http.StatusBadRequest)
 		return
 	}
-	post, err := cs.store.Config(rt)
+	post, err := cs.store.Config(ctx, rt)
 
 	reqId := ""
 
 	if err == nil {
-		reqId = cs.store.SaveRequestId()
+		reqId = cs.store.SaveRequestId(ctx)
 	}
 
-	renderJSON(w, post)
-	renderJSON(w, "Idempotence key:"+reqId)
+	renderJSON(ctx, w, post)
+	renderJSON(ctx, w, "Idempotence key:"+reqId)
 }
 
 // swagger:route GET /configs/ config getConfigs
@@ -79,13 +115,20 @@ func (cs *configServer) createConfigHandler(w http.ResponseWriter, req *http.Req
 //
 //	200: []ResponseConfig
 func (cs *configServer) getAllHandler(w http.ResponseWriter, req *http.Request) {
+	span := tracer.StartSpanFromRequest("getAllConfigsHandler", cs.tracer, req)
+	defer span.Finish()
 
-	allTasks, err := cs.store.GetAll()
+	span.LogFields(
+		tracer.LogString("handler", fmt.Sprintf("handling get all configs at %s\n", req.URL.Path)),
+	)
+
+	ctx := tracer.ContextWithSpan(context.Background(), span)
+	allTasks, err := cs.store.GetAll(ctx)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	renderJSON(w, allTasks)
+	renderJSON(ctx, w, allTasks)
 }
 
 // swagger:route GET /config/{id}/ config getConfigById
@@ -96,15 +139,23 @@ func (cs *configServer) getAllHandler(w http.ResponseWriter, req *http.Request) 
 //	404: ErrorResponse
 //	200: ResponseConfig
 func (cs *configServer) getConfigHandler(w http.ResponseWriter, req *http.Request) {
+	span := tracer.StartSpanFromRequest("getConfigHandler", cs.tracer, req)
+	defer span.Finish()
+
+	span.LogFields(
+		tracer.LogString("handler", fmt.Sprintf("handling get all configs at %s\n", req.URL.Path)),
+	)
+
+	ctx := tracer.ContextWithSpan(context.Background(), span)
 	id := mux.Vars(req)["id"]
 	version := mux.Vars(req)["version"]
-	task, err := cs.store.Get(id, version)
+	task, err := cs.store.Get(ctx, id, version)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	renderJSON(w, task)
+	renderJSON(ctx, w, task)
 }
 
 // swagger:route DELETE /config/{id}/ config deleteConfig
@@ -116,17 +167,24 @@ func (cs *configServer) getConfigHandler(w http.ResponseWriter, req *http.Reques
 //	204: NoContentResponse
 //	201: ResponseConfig
 func (cs *configServer) delConfigHandler(w http.ResponseWriter, req *http.Request) {
+	span := tracer.StartSpanFromRequest("deleteConfigHandler", cs.tracer, req)
+	defer span.Finish()
 
+	span.LogFields(
+		tracer.LogString("handler", fmt.Sprintf("handling delete config at %s\n", req.URL.Path)),
+	)
+
+	ctx := tracer.ContextWithSpan(context.Background(), span)
 	id := mux.Vars(req)["id"]
 
 	version := mux.Vars(req)["version"]
 
-	msg, err := cs.store.Delete(id, version)
+	msg, err := cs.store.Delete(ctx, id, version)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	renderJSON(w, msg)
+	renderJSON(ctx, w, msg)
 }
 
 /*if v, ok := cs.data[id]; ok {
@@ -146,7 +204,12 @@ func (cs *configServer) delConfigHandler(w http.ResponseWriter, req *http.Reques
 //	400: ErrorResponse
 //	201: ResponseGroup
 func (cs *configServer) createGroupHandler(w http.ResponseWriter, req *http.Request) {
+	span := tracer.StartSpanFromRequest("creteGroupHandler", cs.tracer, req)
+	defer span.Finish()
 
+	span.LogFields(
+		tracer.LogString("handler", fmt.Sprintf("handling group create at %s\n", req.URL.Path)),
+	)
 	contentType := req.Header.Get("Content-Type")
 	requestId := req.Header.Get("x-idempotency-key")
 	mediatype, _, err := mime.ParseMediaType(contentType)
@@ -160,8 +223,8 @@ func (cs *configServer) createGroupHandler(w http.ResponseWriter, req *http.Requ
 		http.Error(w, err.Error(), http.StatusUnsupportedMediaType)
 		return
 	}
-
-	rt, err := decodeGroup(req.Body)
+	ctx := tracer.ContextWithSpan(context.Background(), span)
+	rt, err := decodeGroup(ctx, req.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -173,20 +236,20 @@ func (cs *configServer) createGroupHandler(w http.ResponseWriter, req *http.Requ
 		return
 	}*/
 
-	if cs.store.FindRequestId(requestId) == true {
+	if cs.store.FindRequestId(ctx, requestId) == true {
 		http.Error(w, "Request has been already sent", http.StatusBadRequest)
 		return
 	}
-	post, err := cs.store.PostGroup(rt)
+	post, err := cs.store.PostGroup(ctx, rt)
 
 	reqId := ""
 
 	if err == nil {
-		reqId = cs.store.SaveRequestId()
+		reqId = cs.store.SaveRequestId(ctx)
 	}
 
-	renderJSON(w, post)
-	renderJSON(w, "Idempotence key:"+reqId)
+	renderJSON(ctx, w, post)
+	renderJSON(ctx, w, "Idempotence key:"+reqId)
 }
 
 // swagger:route PUT /group/{g_id}/config/{c_id}/ group addConfigToGroup
@@ -198,6 +261,14 @@ func (cs *configServer) createGroupHandler(w http.ResponseWriter, req *http.Requ
 //	400: ErrorResponse
 //	201: ResponseGroup
 func (cs *configServer) addConfigToGroup(w http.ResponseWriter, req *http.Request) {
+	span := tracer.StartSpanFromRequest("addConfigToGroupHandler", cs.tracer, req)
+	defer span.Finish()
+
+	span.LogFields(
+		tracer.LogString("handler", fmt.Sprintf("handling add config to group at %s\n", req.URL.Path)),
+	)
+
+	ctx := tracer.ContextWithSpan(context.Background(), span)
 	groupId := mux.Vars(req)["g_id"]
 	groupVersion := mux.Vars(req)["g_version"]
 	id := mux.Vars(req)["c_id"]
@@ -209,14 +280,14 @@ func (cs *configServer) addConfigToGroup(w http.ResponseWriter, req *http.Reques
 		return
 	}*/
 
-	group2, err := cs.store.GetOneGroup(groupId, groupVersion)
+	group2, err := cs.store.GetOneGroup(ctx, groupId, groupVersion)
 	if err != nil {
 		err := errors.New("group not found")
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
-	task, err := cs.store.GetOneConfig(id, configVersion)
+	task, err := cs.store.GetOneConfig(ctx, id, configVersion)
 	if err != nil {
 		err := errors.New("config not found")
 		http.Error(w, err.Error(), http.StatusNotFound)
@@ -232,8 +303,8 @@ func (cs *configServer) addConfigToGroup(w http.ResponseWriter, req *http.Reques
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}*/
-	cs.store.SaveGroup(group2)
-	renderJSON(w, group2)
+	cs.store.SaveGroup(ctx, group2)
+	renderJSON(ctx, w, group2)
 	/*groupId := mux.Vars(req)["g_id"]
 	id := mux.Vars(req)["c_id"]
 
@@ -275,13 +346,20 @@ func (cs *configServer) addConfigToGroup(w http.ResponseWriter, req *http.Reques
 //
 //	200: []ResponseGroup
 func (cs *configServer) getAllGroupsHandler(w http.ResponseWriter, req *http.Request) {
+	span := tracer.StartSpanFromRequest("getAllGroupsHandler", cs.tracer, req)
+	defer span.Finish()
 
-	allTasks, err := cs.store.GetAllGroups()
+	span.LogFields(
+		tracer.LogString("handler", fmt.Sprintf("handling get all groups at %s\n", req.URL.Path)),
+	)
+
+	ctx := tracer.ContextWithSpan(context.Background(), span)
+	allTasks, err := cs.store.GetAllGroups(ctx)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	renderJSON(w, allTasks)
+	renderJSON(ctx, w, allTasks)
 }
 
 // swagger:route GET /group/{id}/ group getGroupById
@@ -292,15 +370,21 @@ func (cs *configServer) getAllGroupsHandler(w http.ResponseWriter, req *http.Req
 //	404: ErrorResponse
 //	200: ResponseGroup
 func (cs *configServer) getGroupHandler(w http.ResponseWriter, req *http.Request) {
+	span := tracer.StartSpanFromRequest("getGroupHandler", cs.tracer, req)
+	defer span.Finish()
 
+	span.LogFields(
+		tracer.LogString("handler", fmt.Sprintf("handling get all groups at %s\n", req.URL.Path)),
+	)
+	ctx := tracer.ContextWithSpan(context.Background(), span)
 	id := mux.Vars(req)["id"]
 	version := mux.Vars(req)["version"]
-	task, err := cs.store.GetGroup(id, version)
+	task, err := cs.store.GetGroup(ctx, id, version)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	renderJSON(w, task)
+	renderJSON(ctx, w, task)
 
 }
 
@@ -313,16 +397,23 @@ func (cs *configServer) getGroupHandler(w http.ResponseWriter, req *http.Request
 //	204: NoContentResponse
 //	201: ResponseGroup
 func (cs *configServer) delGroupHandler(w http.ResponseWriter, req *http.Request) {
+	span := tracer.StartSpanFromRequest("delConfigFromGroupHandler", cs.tracer, req)
+	defer span.Finish()
 
+	span.LogFields(
+		tracer.LogString("handler", fmt.Sprintf("handling del config from group at %s\n", req.URL.Path)),
+	)
+
+	ctx := tracer.ContextWithSpan(context.Background(), span)
 	id := mux.Vars(req)["id"]
 	version := mux.Vars(req)["version"]
 
-	msg, err := cs.store.DeleteGroup(id, version)
+	msg, err := cs.store.DeleteGroup(ctx, id, version)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	renderJSON(w, msg)
+	renderJSON(ctx, w, msg)
 	/*_, ok := cs.groupData[id]
 	if !ok {
 		err := errors.New("key not found")
@@ -348,11 +439,19 @@ func (cs *configServer) delConfigFromGroupHandler(w http.ResponseWriter, req *ht
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}*/
+	span := tracer.StartSpanFromRequest("delConfigFromGroupHandler", cs.tracer, req)
+	defer span.Finish()
+
+	span.LogFields(
+		tracer.LogString("handler", fmt.Sprintf("handling del config from group at %s\n", req.URL.Path)),
+	)
+
+	ctx := tracer.ContextWithSpan(context.Background(), span)
 	groupId := mux.Vars(req)["groupId"]
 	groupVersion := mux.Vars(req)["g_version"]
 	//configVersion := mux.Vars(req)["c_version"]
 	id := mux.Vars(req)["id"]
-	group, err2 := cs.store.GetOneGroup(groupId, groupVersion)
+	group, err2 := cs.store.GetOneGroup(ctx, groupId, groupVersion)
 	if err2 != nil {
 		err := errors.New("group not found")
 		http.Error(w, err.Error(), http.StatusNotFound)
@@ -362,23 +461,23 @@ func (cs *configServer) delConfigFromGroupHandler(w http.ResponseWriter, req *ht
 		if config.Id == id {
 			group.Configs = append(group.Configs[:i], group.Configs[i+1:]...)
 			//cs.groupData[groupId] = group
-			grupas, err := cs.store.SaveGroup(group)
+			grupas, err := cs.store.SaveGroup(ctx, group)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
-			renderJSON(w, grupas)
+			renderJSON(ctx, w, grupas)
 			return
 		}
 	}
 	err := errors.New("config not found in group")
 	http.Error(w, err.Error(), http.StatusNotFound)
-	grupas, err := cs.store.SaveGroup(group)
+	grupas, err := cs.store.SaveGroup(ctx, group)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	renderJSON(w, grupas)
+	renderJSON(ctx, w, grupas)
 }
 
 func (ts *configServer) swaggerHandler(w http.ResponseWriter, r *http.Request) {
@@ -386,27 +485,44 @@ func (ts *configServer) swaggerHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *configServer) getPostByLabel(w http.ResponseWriter, req *http.Request) {
+	span := tracer.StartSpanFromRequest("getPostByLabelHandler", s.tracer, req)
+	defer span.Finish()
+
+	span.LogFields(
+		tracer.LogString("handler", fmt.Sprintf("handling get post by label at %s\n", req.URL.Path)),
+	)
+
+	ctx := tracer.ContextWithSpan(context.Background(), span)
+
 	id := mux.Vars(req)["id"]
 	version := mux.Vars(req)["version"]
 	labels := mux.Vars(req)["labels"]
 
-	task, err := s.store.GetConfigsByLabels(id, version, labels)
+	task, err := s.store.GetConfigsByLabels(ctx, id, version, labels)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	renderJSON(w, task)
+	renderJSON(ctx, w, task)
 }
 
 func (s *configServer) getGroupsByLabel(w http.ResponseWriter, req *http.Request) {
+	span := tracer.StartSpanFromRequest("getGroupsByLabelHandler", s.tracer, req)
+	defer span.Finish()
+
+	span.LogFields(
+		tracer.LogString("handler", fmt.Sprintf("handling get groups by label at %s\n", req.URL.Path)),
+	)
+
+	ctx := tracer.ContextWithSpan(context.Background(), span)
 	id := mux.Vars(req)["id"]
 	version := mux.Vars(req)["version"]
 	labels := mux.Vars(req)["labels"]
 
-	task, err := s.store.GetGroupsByLabels(id, version, labels)
+	task, err := s.store.GetGroupsByLabels(ctx, id, version, labels)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	renderJSON(w, task)
+	renderJSON(ctx, w, task)
 }
