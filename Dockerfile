@@ -31,7 +31,7 @@ WORKDIR /root/
 
 # Copy the Pre-built binary file from the previous stage
 COPY --from=builder /Alati/main .
-COPY ./swagger.yaml .
+#COPY ./swagger.yaml .
 
 EXPOSE 8000
 
