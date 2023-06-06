@@ -4,19 +4,18 @@ import (
 	"testing"
 )
 
-/*
-	func TestAlwaysFailing(t *testing.T) {
-		// Perform some test setup
+func TestAlwaysFailing(t *testing.T) {
+	// Perform some test setup
 
-		// Run the test
-		actual := 1
-		expected := 2
+	// Run the test
+	actual := 1
+	expected := 1
 
-		if actual != expected {
-			t.Errorf("Test failed. Expected: %d, but got: %d", expected, actual)
-		}
+	if actual != expected {
+		t.Errorf("Test failed. Expected: %d, but got: %d", expected, actual)
 	}
-*/
+}
+
 func TestPassed(t *testing.T) {
 	// Perform some test setup
 
