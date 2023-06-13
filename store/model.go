@@ -32,8 +32,9 @@ type Group struct {
 	// Version of the group
 	// in: string
 	Version string `json:"version"`
-
-	// Labels of the config
-	// in: string
-	Labels string `json:"labels"` //ne treba da ima labele
+	/*
+		// Labels of the config
+		// in: string
+		Labels string `json:"labels"` //ne treba da ima labele
+	*/
 }

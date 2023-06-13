@@ -149,6 +149,7 @@ func (cs *configServer) getConfigHandler(w http.ResponseWriter, req *http.Reques
 	ctx := tracer.ContextWithSpan(context.Background(), span)
 	id := mux.Vars(req)["id"]
 	version := mux.Vars(req)["version"]
+
 	task, err := cs.store.Get(ctx, id, version)
 
 	if err != nil {
@@ -180,6 +181,28 @@ func (cs *configServer) delConfigHandler(w http.ResponseWriter, req *http.Reques
 	version := mux.Vars(req)["version"]
 
 	msg, err := cs.store.Delete(ctx, id, version)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	renderJSON(ctx, w, msg)
+}
+func (cs *configServer) delConfigByLabelHandler(w http.ResponseWriter, req *http.Request) {
+	span := tracer.StartSpanFromRequest("deleteConfigHandler", cs.tracer, req)
+	defer span.Finish()
+
+	span.LogFields(
+		tracer.LogString("handler", fmt.Sprintf("handling delete config at %s\n", req.URL.Path)),
+	)
+
+	ctx := tracer.ContextWithSpan(context.Background(), span)
+	id := mux.Vars(req)["id"]
+
+	version := mux.Vars(req)["version"]
+
+	label := mux.Vars(req)["labels"]
+
+	msg, err := cs.store.DeleteByLabel(ctx, id, version, label)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -273,14 +296,8 @@ func (cs *configServer) addConfigToGroup(w http.ResponseWriter, req *http.Reques
 	groupVersion := mux.Vars(req)["g_version"]
 	id := mux.Vars(req)["c_id"]
 	configVersion := mux.Vars(req)["c_version"]
-	/*group, groupExists := cs.groupData[groupId]
-	if !groupExists {
-		err := errors.New("group not found")
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
-	}*/
 
-	group2, err := cs.store.GetOneGroup(ctx, groupId, groupVersion)
+	group, err := cs.store.GetOneGroup(ctx, groupId, groupVersion)
 	if err != nil {
 		err := errors.New("group not found")
 		http.Error(w, err.Error(), http.StatusNotFound)
@@ -293,50 +310,42 @@ func (cs *configServer) addConfigToGroup(w http.ResponseWriter, req *http.Reques
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	/*config := s.Config{
-		Id: task.Id,
-	}*/
-	group2.Configs = append(group2.Configs, *task)
-	//cs.groupData[groupId] = group2
-	/*grupas, err := cs.store.SaveGroup(group2)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}*/
-	cs.store.SaveGroup(ctx, group2)
-	renderJSON(ctx, w, group2)
-	/*groupId := mux.Vars(req)["g_id"]
+
+	group.Configs = append(group.Configs, *task)
+
+	cs.store.SaveGroup(ctx, group)
+	renderJSON(ctx, w, group)
+}
+func (cs *configServer) addConfigToGroup2(w http.ResponseWriter, req *http.Request) {
+	span := tracer.StartSpanFromRequest("addConfigToGroupHandler", cs.tracer, req)
+	defer span.Finish()
+
+	span.LogFields(
+		tracer.LogString("handler", fmt.Sprintf("handling add config to group at %s\n", req.URL.Path)),
+	)
+
+	ctx := tracer.ContextWithSpan(context.Background(), span)
+	groupId := mux.Vars(req)["g_id"]
 	id := mux.Vars(req)["c_id"]
 
-	// Dekodiranje JSON podataka iz zahteva u objekat tipa Config
-	var config s.Config
-	err := json.NewDecoder(req.Body).Decode(&config)
+	group, err := cs.store.GetOneGroup2(ctx, groupId)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	// Provera da li grupa i konfiguracija postoje
-	group, ook := cs.groupData[groupId]
-	if !ook {
 		err := errors.New("group not found")
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
-	task, ok := cs.groupData[id]
-	if !ok {
+	task, err := cs.store.GetOneConfig2(ctx, id)
+	if err != nil {
 		err := errors.New("config not found")
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	fmt.Printf("Task ID: %s\n", task.Id)
 
-	// Dodavanje konfiguracije u grupu
-	group.Configs = append(group.Configs, config)
-	cs.groupData[groupId] = group
+	group.Configs = append(group.Configs, *task)
 
-	return*/
+	cs.store.SaveGroup(ctx, group)
+	renderJSON(ctx, w, group)
 }
 
 // swagger:route GET /groups/ group getGroups
@@ -388,6 +397,25 @@ func (cs *configServer) getGroupHandler(w http.ResponseWriter, req *http.Request
 
 }
 
+func (cs *configServer) getGroupHandlerId(w http.ResponseWriter, req *http.Request) {
+	span := tracer.StartSpanFromRequest("getGroupHandler", cs.tracer, req)
+	defer span.Finish()
+
+	span.LogFields(
+		tracer.LogString("handler", fmt.Sprintf("handling get all groups at %s\n", req.URL.Path)),
+	)
+	ctx := tracer.ContextWithSpan(context.Background(), span)
+	id := mux.Vars(req)["id"]
+
+	task, err := cs.store.GetGroupId(ctx, id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	renderJSON(ctx, w, task)
+
+}
+
 // swagger:route DELETE /group/{id}/ group deleteGroup
 // Delete group
 //
@@ -422,6 +450,31 @@ func (cs *configServer) delGroupHandler(w http.ResponseWriter, req *http.Request
 	}
 	delete(cs.groupData, id)*/
 }
+func (cs *configServer) delGroupHandlerId(w http.ResponseWriter, req *http.Request) {
+	span := tracer.StartSpanFromRequest("delConfigFromGroupHandler", cs.tracer, req)
+	defer span.Finish()
+
+	span.LogFields(
+		tracer.LogString("handler", fmt.Sprintf("handling del config from group at %s\n", req.URL.Path)),
+	)
+
+	ctx := tracer.ContextWithSpan(context.Background(), span)
+	id := mux.Vars(req)["id"]
+
+	msg, err := cs.store.DeleteGroupId(ctx, id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	renderJSON(ctx, w, msg)
+	/*_, ok := cs.groupData[id]
+	if !ok {
+		err := errors.New("key not found")
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	delete(cs.groupData, id)*/
+}
 
 // swagger:route DELETE /group/{g_id}/config/{c_id}/ group deleteConfigFromGroup
 // Delete config from group
@@ -431,14 +484,7 @@ func (cs *configServer) delGroupHandler(w http.ResponseWriter, req *http.Request
 //	404: ErrorResponse
 //	204: NoContentResponse
 func (cs *configServer) delConfigFromGroupHandler(w http.ResponseWriter, req *http.Request) {
-	/*groupId := mux.Vars(req)["g_id"]
-	id := mux.Vars(req)["c_id"]
-	group, ok := cs.groupData[groupId]
-	if !ok {
-		err := errors.New("group not found")
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
-	}*/
+
 	span := tracer.StartSpanFromRequest("delConfigFromGroupHandler", cs.tracer, req)
 	defer span.Finish()
 
@@ -452,6 +498,48 @@ func (cs *configServer) delConfigFromGroupHandler(w http.ResponseWriter, req *ht
 	//configVersion := mux.Vars(req)["c_version"]
 	id := mux.Vars(req)["id"]
 	group, err2 := cs.store.GetOneGroup(ctx, groupId, groupVersion)
+	if err2 != nil {
+		err := errors.New("group not found")
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	for i, config := range group.Configs {
+		if config.Id == id {
+			group.Configs = append(group.Configs[:i], group.Configs[i+1:]...)
+			//cs.groupData[groupId] = group
+			grupas, err := cs.store.SaveGroup(ctx, group)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			renderJSON(ctx, w, grupas)
+			return
+		}
+	}
+	err := errors.New("config not found in group")
+	http.Error(w, err.Error(), http.StatusNotFound)
+	grupas, err := cs.store.SaveGroup(ctx, group)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	renderJSON(ctx, w, grupas)
+}
+func (cs *configServer) delConfigFromGroupHandler2(w http.ResponseWriter, req *http.Request) {
+
+	span := tracer.StartSpanFromRequest("delConfigFromGroupHandler", cs.tracer, req)
+	defer span.Finish()
+
+	span.LogFields(
+		tracer.LogString("handler", fmt.Sprintf("handling del config from group at %s\n", req.URL.Path)),
+	)
+
+	ctx := tracer.ContextWithSpan(context.Background(), span)
+	groupId := mux.Vars(req)["groupId"]
+	//groupVersion := mux.Vars(req)["g_version"]
+	//configVersion := mux.Vars(req)["c_version"]
+	id := mux.Vars(req)["id"]
+	group, err2 := cs.store.GetOneGroup2(ctx, groupId)
 	if err2 != nil {
 		err := errors.New("group not found")
 		http.Error(w, err.Error(), http.StatusNotFound)
@@ -506,6 +594,7 @@ func (s *configServer) getPostByLabel(w http.ResponseWriter, req *http.Request) 
 	renderJSON(ctx, w, task)
 }
 
+/*
 func (s *configServer) getGroupsByLabel(w http.ResponseWriter, req *http.Request) {
 	span := tracer.StartSpanFromRequest("getGroupsByLabelHandler", s.tracer, req)
 	defer span.Finish()
@@ -525,4 +614,4 @@ func (s *configServer) getGroupsByLabel(w http.ResponseWriter, req *http.Request
 		return
 	}
 	renderJSON(ctx, w, task)
-}
+}*/

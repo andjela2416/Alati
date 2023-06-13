@@ -72,6 +72,19 @@ var (
 			Help: "Total number of del group hits.",
 		},
 	)
+	getGroupHitsId = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "get_group_by_id_http_hit_total",
+			Help: "Total number of get group hits.",
+		},
+	)
+
+	delGroupHitsId = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "del_group_by_id_http_hit_total",
+			Help: "Total number of del group hits.",
+		},
+	)
 
 	appendGroupHits = prometheus.NewCounter(
 		prometheus.CounterOpts{
@@ -113,6 +126,24 @@ var (
 			Help: "Total number of add config to group hits.",
 		},
 	)
+	addConfigToGroup2Hits = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "add_config_to_group2_http_hit_total",
+			Help: "Total number of add config to group hits.",
+		},
+	)
+	delConfigFromGroupHits = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "del_config_from_group_http_hit_total",
+			Help: "Total number of del config from group hits.",
+		},
+	)
+	delConfigFromGroup2Hits = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "del_config_from_group2_http_hit_total",
+			Help: "Total number of del config from group hits.",
+		},
+	)
 	swaggerHits = prometheus.NewCounter(
 		prometheus.CounterOpts{
 			Name: "swagger_http_hit_total",
@@ -130,13 +161,18 @@ var (
 		createGroupHits,
 		getAllGroupHits,
 		getGroupHits,
+		getGroupHitsId,
 		delGroupHits,
+		delGroupHitsId,
 		appendGroupHits,
 		getConfigByLabelsHits,
 		delConfigByLabelsHits,
 		getGroupByLabelsHits,
 		delGroupByLabelsHits,
 		addConfigToGroupHits,
+		addConfigToGroup2Hits,
+		delConfigFromGroupHits,
+		delConfigFromGroup2Hits,
 		swaggerHits,
 	}
 
@@ -224,6 +260,22 @@ func CountDelGroup(f func(w http.ResponseWriter, req *http.Request)) func(http.R
 	}
 }
 
+func CountGetGroupId(f func(w http.ResponseWriter, req *http.Request)) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		httpHits.Inc()
+		getGroupHitsId.Inc()
+		f(w, r) // original function call
+	}
+}
+
+func CountDelGroupId(f func(w http.ResponseWriter, req *http.Request)) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		httpHits.Inc()
+		delGroupHitsId.Inc()
+		f(w, r) // original function call
+	}
+}
+
 func CountAppendGroup(f func(w http.ResponseWriter, req *http.Request)) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		httpHits.Inc()
@@ -268,6 +320,30 @@ func CountAddConfigToGroup(f func(http.ResponseWriter, *http.Request)) func(http
 	return func(w http.ResponseWriter, r *http.Request) {
 		httpHits.Inc()
 		addConfigToGroupHits.Inc()
+		f(w, r) // original function call
+	}
+}
+
+func CountAddConfigToGroup2(f func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		httpHits.Inc()
+		addConfigToGroup2Hits.Inc()
+		f(w, r) // original function call
+	}
+}
+
+func CountDelConfigFromGroup(f func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		httpHits.Inc()
+		delConfigFromGroupHits.Inc()
+		f(w, r) // original function call
+	}
+}
+
+func CountDelConfigFromGroup2(f func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		httpHits.Inc()
+		delConfigFromGroup2Hits.Inc()
 		f(w, r) // original function call
 	}
 }
